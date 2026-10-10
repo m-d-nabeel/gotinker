@@ -22,7 +22,7 @@ import (
 //go:embed goprt/*.go
 var goprtFS embed.FS
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	expr := flag.String("e", "", "evaluate `code` and exit")
