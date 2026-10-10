@@ -1,0 +1,5 @@
+# Binaries
+/gop
+/dist/
+*.test
+*.out
