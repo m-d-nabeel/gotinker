@@ -116,8 +116,7 @@ func newSession(u *ui) (*Session, error) {
 // export-data index, so the first input is fast.
 func (s *Session) warm() {
 	_ = s.imp.load(runtimePath, "fmt", "strings", "strconv", "os", "time", "math", "sort", "slices", "maps", "errors")
-	cmd := exec.Command("go", "build", "-o", os.DevNull, "./goprt")
-	cmd.Dir = s.dir
+	cmd := goCmd(context.Background(), s.dir, "build", "-o", os.DevNull, "./goprt")
 	_ = cmd.Run()
 }
 
@@ -133,7 +132,7 @@ func cleanStaleSessions(dir string) {
 }
 
 func goVersion() (string, error) {
-	out, err := exec.Command("go", "env", "GOVERSION").Output()
+	out, err := goCmd(context.Background(), os.TempDir(), "env", "GOVERSION").Output()
 	if err != nil {
 		return "", fmt.Errorf("go toolchain not found: %w", err)
 	}
@@ -495,6 +494,12 @@ func planStmts(id int, src string) (*stmtPlan, error) {
 	if err != nil {
 		return nil, err
 	}
+	if pos := topLevelReturn(stmts); pos != token.NoPos {
+		off := int(pos) - 1 - len(stmtPrefix)
+		line := strings.Count(src[:off], "\n") + 1
+		col := off - strings.LastIndex(src[:off], "\n")
+		return nil, &posError{line: line, col: col, msg: "return here would end the whole session program; wrap the code in a func to return early"}
+	}
 	p := &stmtPlan{id: id, src: src, stmts: stmts, pure: true}
 	base := len(stmtPrefix)
 	for i, st := range stmts {
@@ -535,6 +540,26 @@ func planStmts(id int, src string) (*stmtPlan, error) {
 		}
 	}
 	return p, nil
+}
+
+// topLevelReturn finds a return statement that would return from main
+// (one not inside a function literal).
+func topLevelReturn(stmts []ast.Stmt) token.Pos {
+	found := token.NoPos
+	for _, st := range stmts {
+		ast.Inspect(st, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.FuncLit:
+				return false
+			case *ast.ReturnStmt:
+				if found == token.NoPos {
+					found = n.Pos()
+				}
+			}
+			return found == token.NoPos
+		})
+	}
+	return found
 }
 
 // hasEffects reports whether evaluating e could change program state.
@@ -782,9 +807,12 @@ func (s *Session) alternative(imports []importSpec, name, sel string) string {
 
 func (s *Session) typecheck(prog program) *checked {
 	c := &checked{prog: prog}
-	f, err := parser.ParseFile(s.fset, "main.go", prog.src, parser.ParseComments|parser.AllErrors)
+	// A fresh FileSet per check: a shared one would keep every program ever
+	// checked (one per keystroke for hints) alive for the whole session.
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "main.go", prog.src, parser.ParseComments|parser.AllErrors)
 	if err != nil {
-		c.errs = append(c.errs, types.Error{Fset: s.fset, Msg: err.Error()})
+		c.errs = append(c.errs, types.Error{Fset: fset, Msg: err.Error()})
 		if f == nil {
 			return c
 		}
@@ -804,7 +832,7 @@ func (s *Session) typecheck(prog program) *checked {
 			}
 		},
 	}
-	c.pkg, _ = conf.Check("main", s.fset, []*ast.File{f}, c.info)
+	c.pkg, _ = conf.Check("main", fset, []*ast.File{f}, c.info)
 	return c
 }
 
@@ -882,6 +910,9 @@ func (s *Session) Eval(ctx context.Context, src string) {
 	if err != nil {
 		s.ui.inputError(p.stmts, err)
 		return
+	}
+	if len(plan.stmts) == 0 && len(p.decls) == 0 {
+		return // only comments
 	}
 	s.evalStmts(ctx, decls, newDecls, imports, plan, src)
 }
@@ -1253,8 +1284,7 @@ func (s *Session) buildAndRun(ctx context.Context, src string, lookup func(int) 
 	}
 	bin := filepath.Join(s.dir, "prog")
 	start := time.Now()
-	build := exec.CommandContext(ctx, "go", "build", "-buildvcs=false", "-ldflags=-s -w", "-o", bin, ".")
-	build.Dir = s.dir
+	build := goCmd(ctx, s.dir, "build", "-buildvcs=false", "-ldflags=-s -w", "-o", bin, ".")
 	out, err := build.CombinedOutput()
 	buildTime := time.Since(start)
 	if err != nil {
@@ -1271,7 +1301,9 @@ func (s *Session) buildAndRun(ctx context.Context, src string, lookup func(int) 
 	cmd.Stdin = os.Stdin
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
-	cmd.Env = append(os.Environ(), "GOTINKER_MUTE=1")
+	done := filepath.Join(s.dir, "done")
+	_ = os.Remove(done)
+	cmd.Env = append(os.Environ(), "GOTINKER_MUTE=1", "GOTINKER_DONE="+done)
 	if s.ui.color {
 		cmd.Env = append(cmd.Env, "GOTINKER_COLOR=1")
 	}
@@ -1322,21 +1354,29 @@ func (s *Session) buildAndRun(ctx context.Context, src string, lookup func(int) 
 	}
 	s.ui.timing(buildTime, runTime)
 	if interrupted {
+		s.ui.fail()
 		s.ui.note("interrupted (input discarded)")
 		return false
 	}
-	if runErr != nil {
-		var ee *exec.ExitError
-		if errors.As(runErr, &ee) && ee.ExitCode() == 2 {
-			s.ui.note("input discarded")
-		} else if errors.As(runErr, &ee) && ee.ExitCode() > 0 {
-			s.ui.note("exit status %d (input discarded)", ee.ExitCode())
-		} else {
-			s.ui.note("%v (input discarded)", runErr)
+	if runErr == nil {
+		if _, err := os.Stat(done); err != nil {
+			s.ui.fail()
+			s.ui.note("the program exited before this input finished (os.Exit?); input discarded so later inputs still run")
+			return false
 		}
-		return false
+		return true
 	}
-	return true
+	s.ui.fail()
+	var ee *exec.ExitError
+	switch {
+	case errors.As(runErr, &ee) && ee.ExitCode() == 2:
+		s.ui.note("input discarded")
+	case errors.As(runErr, &ee) && ee.ExitCode() > 0:
+		s.ui.note("exit status %d (input discarded)", ee.ExitCode())
+	default:
+		s.ui.note("%v (input discarded)", runErr)
+	}
+	return false
 }
 
 type lastByteWriter struct {
@@ -1355,8 +1395,7 @@ func (l *lastByteWriter) Write(p []byte) (int, error) {
 
 // ensureModule adds a third-party module providing importPath to go.mod.
 func (s *Session) ensureModule(ctx context.Context, importPath string) error {
-	list := exec.CommandContext(ctx, "go", "list", "-e", "-f", "{{if .Error}}missing{{end}}", importPath)
-	list.Dir = s.dir
+	list := goCmd(ctx, s.dir, "list", "-e", "-f", "{{if .Error}}missing{{end}}", importPath)
 	if out, err := list.Output(); err == nil && strings.TrimSpace(string(out)) == "" {
 		return nil
 	}
@@ -1365,8 +1404,7 @@ func (s *Session) ensureModule(ctx context.Context, importPath string) error {
 
 func (s *Session) goGet(ctx context.Context, target string) error {
 	s.ui.note("fetching %s ...", target)
-	cmd := exec.CommandContext(ctx, "go", "get", target)
-	cmd.Dir = s.dir
+	cmd := goCmd(ctx, s.dir, "get", target)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("go get %s: %s", target, strings.TrimSpace(string(out)))
 	}

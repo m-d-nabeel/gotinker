@@ -55,16 +55,20 @@ CI runs on Linux and macOS. Windows is untested.
   still typing, each with its signature.
 - **Signature hints** while typing a call, with the current argument
   highlighted.
-- **A real multi-line editor** — blocks open automatically on an unclosed
-  `{`, `(` or trailing operator, with auto-indent (and gofmt-style `case`
-  alignment); brackets and quotes close automatically (typing the closer, or `}` on
-  the line after, steps over it) and closing brackets dedent; ↑/↓ move between lines and reach
-  history only from the first/last line; Enter on an earlier line adds a line
-  there, Enter between brackets (`{|}`) opens them onto separate lines,
-  Alt-Enter always adds a line, Ctrl-J runs from anywhere; Tab indents at
-  the start of a line and completes elsewhere; Alt-←/→ and Alt-Backspace work
-  on Go identifiers. Pasting a type with its methods and code using them
-  just works.
+- **A real multi-line editor**:
+  - an unclosed `{`, `(` or trailing operator continues on a new,
+    auto-indented line (`case` clauses align with their `switch`, as gofmt
+    does);
+  - brackets and quotes close automatically; typing the closer (or `}` on
+    the line after) steps over it, and Backspace in an empty pair deletes
+    both;
+  - Enter between brackets (`{|}`) opens them onto separate lines, Enter on
+    an earlier line adds a line there, Alt-Enter always adds a line, and
+    Ctrl-J runs the input from anywhere;
+  - ↑/↓ move between lines and reach history only from the first/last line;
+  - Tab indents at the start of a line and completes elsewhere;
+  - Alt-←/→, Alt-Backspace and Alt-D move and delete by Go identifier;
+  - a pasted type with its methods and code that uses them just works.
 - **Syntax highlighting**, persistent history with search (Ctrl-R) and
   fish-style suggestions, `.inputrc` support (vi mode too).
 - **Errors point at your input** with a caret; panics show a short trace
@@ -91,7 +95,8 @@ CI runs on Linux and macOS. Windows is untested.
 | `:get <module>` | add a module (`:get github.com/google/uuid@v1.6.0`) |
 | `:reset`, `:clear`, `:quit` | |
 
-Non-interactive use: `gotinker -e 'expr'`, `gotinker file.go`, or pipe code to stdin.
+Non-interactive use: `gotinker -e 'expr'`, `gotinker file.go`, or pipe code
+to stdin. The exit status is 1 if any input failed.
 
 ## How it works
 
@@ -108,7 +113,13 @@ Because the session re-runs on each input:
 - values from `rand` or `time.Now()` are recomputed every time;
 - earlier reads from stdin see EOF;
 - slow earlier cells (big loops, sleeps, network calls) slow down every input
-  — `:cells` and `:drop` help.
+  — `:cells` and `:drop` help;
+- an input that would end the program early (`os.Exit`, or `return` outside
+  a function) is rejected, since every later input would silently stop
+  running.
+
+gotinker runs the `go` command for its sessions with `GOWORK=off` and
+`GOFLAGS=-mod=mod`, so your own workspace and flags don't affect them.
 
 ## Files
 

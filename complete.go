@@ -58,7 +58,7 @@ func (c *completer) probe(before, expr string) probeResult {
 	code := repair(before, "__gop.P("+expr+")")
 	var res probeResult
 	var chk *checked
-	if declKeyword.MatchString(code) && !strings.HasPrefix(strings.TrimSpace(code), "var") {
+	if parsesAsDecl(code) {
 		d := &cell{id: c.s.nextID, kind: declCell, src: code}
 		chk = c.s.check(genInput{decls: append(append([]*cell(nil), c.s.decls...), d), replay: c.s.stmts, imports: c.s.imports}, nil)
 	} else {
@@ -114,11 +114,22 @@ func repair(before, probe string) string {
 }
 
 func parses(code string) bool {
-	if declKeyword.MatchString(code) && !strings.HasPrefix(strings.TrimSpace(code), "var") {
-		_, err := parser.ParseFile(token.NewFileSet(), "", "package main\n"+code, 0)
-		return err == nil
+	if parsesAsDecl(code) {
+		return true
 	}
 	_, err := parseStmts(code)
+	return err == nil
+}
+
+// parsesAsDecl reports whether code is package-level declarations (other
+// than var: a var probe belongs in main, where locals are visible). A
+// function literal such as `func(n int) {...}` starts with "func" but is a
+// statement.
+func parsesAsDecl(code string) bool {
+	if !declKeyword.MatchString(code) || strings.HasPrefix(strings.TrimSpace(code), "var") {
+		return false
+	}
+	_, err := parser.ParseFile(token.NewFileSet(), "", "package main\n"+code, 0)
 	return err == nil
 }
 

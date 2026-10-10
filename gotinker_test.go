@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -148,6 +149,9 @@ func newTestSession(t *testing.T) (*Session, *bytes.Buffer) {
 	var out bytes.Buffer
 	u := &ui{out: &out, err: &out}
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	// Sessions must not be affected by the user's workspace or flags.
+	t.Setenv("GOWORK", filepath.Join(t.TempDir(), "missing.work"))
+	t.Setenv("GOFLAGS", "-mod=vendor")
 	s, err := newSession(u)
 	if err != nil {
 		t.Fatal(err)
@@ -177,6 +181,14 @@ func TestSessionEndToEnd(t *testing.T) {
 		// A pasted type, method and code using them.
 		{"type T struct{ N int }\nfunc (t T) Double() int { return t.N * 2 }\nT{N: 21}.Double()", "42  int"},
 		{"func (t T) Triple() int { return t.N * 3 }", "func (T) Triple() int"},
+		// os.Exit would make every later input unreachable: discarded.
+		{"os.Exit(0)", "exited before this input finished"},
+		{"return", "return here would end the whole session"},
+		{"z * 10", "40  int"},
+		// A variable whose name only appears in a string still needs
+		// `_ = n` in the exported program (checked by the build below).
+		{"n := 5\nmsg := \"n is the count\"\nfmt.Println(msg)", "n is the count"},
+		{"n := \"redeclared\"", `n = "redeclared"`},
 	}
 	for _, st := range steps {
 		out.Reset()
@@ -191,8 +203,7 @@ func TestSessionEndToEnd(t *testing.T) {
 	src := s.exportSource()
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte(src), 0o644)
 	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module x\n\ngo "+s.goVer+"\n"), 0o644)
-	cmd := exec.Command("go", "build", "-o", os.DevNull, ".")
-	cmd.Dir = dir
+	cmd := goCmd(context.Background(), dir, "build", "-o", os.DevNull, ".")
 	if msg, err := cmd.CombinedOutput(); err != nil {
 		t.Errorf("exported program does not build: %v\n%s\n%s", err, msg, src)
 	}
@@ -301,5 +312,34 @@ func TestPairAllowed(t *testing.T) {
 		if got := pairAllowed(line, len([]rune(c[:i]))); got != want {
 			t.Errorf("pairAllowed(%q) = %v, want %v", c, got, want)
 		}
+	}
+}
+
+func TestTopLevelReturnAndRawStrings(t *testing.T) {
+	for src, want := range map[string]bool{
+		"return":                                 true,
+		"if x { return }":                        true,
+		"f := func() int { return 1 }":           false,
+		"for range 3 { go func() { return }() }": false,
+	} {
+		stmts, err := parseStmts(src + "\nvar x bool\n_ = x")
+		if err != nil {
+			t.Fatalf("%q: %v", src, err)
+		}
+		if got := topLevelReturn(stmts) != token.NoPos; got != want {
+			t.Errorf("topLevelReturn(%q) = %v, want %v", src, got, want)
+		}
+	}
+	for src, want := range map[string]bool{
+		"s := `abc":      true,
+		"s := `abc`":     false,
+		"s := \"`\" + x": false,
+	} {
+		if got := inRawString(src); got != want {
+			t.Errorf("inRawString(%q) = %v, want %v", src, got, want)
+		}
+	}
+	if text, at := newlineInsert([]rune("s := `\tline"), len("s := `\tline")); text != "\n" || at != 1 {
+		t.Errorf("newline inside a raw string = %q, %d; want a bare newline", text, at)
 	}
 }

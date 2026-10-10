@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"go/importer"
 	"go/token"
@@ -59,8 +60,7 @@ func (e *exportImporter) lookup(path string) (io.ReadCloser, error) {
 // compiling them into the build cache if needed.
 func (e *exportImporter) load(paths ...string) error {
 	args := append([]string{"list", "-e", "-export", "-deps", "-f", "{{.ImportPath}}\t{{.Export}}\t{{if .Error}}{{.Error.Err}}{{end}}", "--"}, paths...)
-	cmd := exec.Command("go", args...)
-	cmd.Dir = e.dir
+	cmd := goCmd(context.Background(), e.dir, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -93,4 +93,14 @@ func (e *exportImporter) Import(path string) (*types.Package, error) {
 
 func (e *exportImporter) ImportFrom(path, dir string, mode types.ImportMode) (*types.Package, error) {
 	return e.imp.ImportFrom(path, e.dir, mode)
+}
+
+// goCmd runs the go command in the session module, isolated from settings
+// that would break it: a workspace (GOWORK) the session is not part of, or
+// GOFLAGS such as -mod=vendor meant for the user's own projects.
+func goCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS=-mod=mod")
+	return cmd
 }

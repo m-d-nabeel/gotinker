@@ -6,6 +6,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"regexp"
 	"strings"
 )
@@ -20,13 +21,14 @@ func formatSource(src string) string {
 
 // exportSource renders the session as a standalone program: statement cells
 // are flattened into main, opening a nested block only where a cell
-// redeclares a variable (which the playground allows but Go does not), and
-// `_ = x` is kept only for variables nothing else uses.
+// redeclares a variable (which the playground allows but Go does not).
+// Variables that end up unused get a `_ = x`, as the type checker reports
+// them, so the result compiles.
 func (s *Session) exportSource() string {
 	var body strings.Builder
 	defined := map[string]bool{}
 	depth := 0
-	for i, c := range s.stmts {
+	for _, c := range s.stmts {
 		src := c.out
 		if strings.TrimSpace(src) == "" {
 			continue
@@ -49,12 +51,8 @@ func (s *Session) exportSource() string {
 			defined = map[string]bool{}
 		}
 		body.WriteString(strings.TrimRight(src, "\n") + "\n")
-		later := laterSource(s.stmts[i+1:])
 		for _, n := range names {
 			defined[n] = true
-			if !regexp.MustCompile(`\b`+regexp.QuoteMeta(n)+`\b`).MatchString(later) && !usedAfterDef(src, n) {
-				body.WriteString("_ = " + n + "\n")
-			}
 		}
 	}
 	body.WriteString(strings.Repeat("}\n", depth))
@@ -80,7 +78,58 @@ func (s *Session) exportSource() string {
 		b.WriteString(")\n\n")
 	}
 	b.WriteString(code.String())
-	return formatSource(b.String())
+	return formatSource(s.useUnused(b.String()))
+}
+
+var reUnusedVar = regexp.MustCompile(`^declared and not used: (\w+)$`)
+
+// useUnused adds `_ = x` after the statement declaring each variable the
+// type checker reports as unused.
+func (s *Session) useUnused(src string) string {
+	for range 5 {
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, "main.go", src, 0)
+		if err != nil {
+			return src
+		}
+		var unused []types.Error
+		conf := types.Config{Importer: s.imp, GoVersion: "go" + s.goVer, Error: func(err error) {
+			if te, ok := err.(types.Error); ok && reUnusedVar.MatchString(te.Msg) {
+				unused = append(unused, te)
+			}
+		}}
+		_, _ = conf.Check("main", fset, []*ast.File{f}, nil)
+		if len(unused) == 0 {
+			return src
+		}
+		var edits []edit
+		for _, e := range unused {
+			name := reUnusedVar.FindStringSubmatch(e.Msg)[1]
+			// The innermost statement that declares the variable.
+			var decl ast.Stmt
+			ast.Inspect(f, func(n ast.Node) bool {
+				switch st := n.(type) {
+				case *ast.AssignStmt, *ast.DeclStmt, *ast.RangeStmt:
+					if st.Pos() <= e.Pos && e.Pos < st.End() {
+						decl = st.(ast.Stmt)
+					}
+				}
+				return true
+			})
+			if decl == nil {
+				continue
+			}
+			if _, isRange := decl.(*ast.RangeStmt); isRange {
+				continue // a loop variable: leave it to the user
+			}
+			edits = append(edits, edit{fset.Position(decl.End()).Offset, "\n_ = " + name})
+		}
+		if len(edits) == 0 {
+			return src
+		}
+		src = applyEdits(src, edits)
+	}
+	return src
 }
 
 // referencedImports keeps the imports whose name is used as a selector
@@ -106,22 +155,6 @@ func referencedImports(code string, imports []importSpec) []importSpec {
 		}
 	}
 	return out
-}
-
-func laterSource(cells []*cell) string {
-	var b strings.Builder
-	for _, c := range cells {
-		b.WriteString(c.out + "\n")
-	}
-	return b.String()
-}
-
-// usedAfterDef reports whether name appears in src after its first
-// definition (a rough check that keeps exported code free of `_ = x` noise).
-func usedAfterDef(src, name string) bool {
-	re := regexp.MustCompile(`\b` + regexp.QuoteMeta(name) + `\b`)
-	locs := re.FindAllStringIndex(src, -1)
-	return len(locs) > 1
 }
 
 func topLevelDefs(stmts []ast.Stmt) []string {

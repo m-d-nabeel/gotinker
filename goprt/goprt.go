@@ -38,6 +38,11 @@ func Unmute() { unmute() }
 func Finish() {
 	r := recover()
 	if r == nil {
+		// Tell gotinker the input ran to completion (an os.Exit inside it
+		// would skip this and leave later inputs silently unreachable).
+		if done := os.Getenv("GOTINKER_DONE"); done != "" {
+			_ = os.WriteFile(done, nil, 0o644)
+		}
 		mute()
 		return
 	}
@@ -366,6 +371,9 @@ func (p *printer) custom(v reflect.Value) (node, bool) {
 	}
 	if t.Implements(stringerType) || reflect.PointerTo(t).Implements(stringerType) {
 		return try("String", func(s string) string {
+			if s == "" {
+				return typeName(t) + paint(dim, `("")`) // e.g. an empty strings.Builder
+			}
 			if len(s) > maxString {
 				s = s[:maxString] + "…"
 			}

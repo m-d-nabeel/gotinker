@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,9 @@ import (
 
 // ui renders everything gotinker itself prints (results come from goprt).
 type ui struct {
+	failures int   // errors reported so far; non-interactive runs exit 1 if any
+	earlier  []int // earlier cells named in the errors being reported
+
 	color bool
 	out   io.Writer
 	err   io.Writer
@@ -47,7 +51,11 @@ func (u *ui) note(format string, args ...any) {
 	fmt.Fprintln(u.out, u.style(sGray, "· "+fmt.Sprintf(format, args...)))
 }
 
+// fail records a failed input without printing anything.
+func (u *ui) fail() { u.failures++ }
+
 func (u *ui) errorf(format string, args ...any) {
+	u.fail()
 	fmt.Fprintln(u.err, u.style(sRed+sBold, "error: ")+fmt.Sprintf(format, args...))
 }
 
@@ -74,6 +82,7 @@ func round(d time.Duration) string {
 
 // sourceError prints msg with the offending line and a caret under col.
 func (u *ui) sourceError(prefix, msg string, src string, line, col int) {
+	u.fail()
 	fmt.Fprintln(u.err, u.style(sRed+sBold, "error: ")+prefix+msg)
 	ls := strings.Split(src, "\n")
 	if line < 1 || line > len(ls) {
@@ -123,6 +132,7 @@ func locate(pos token.Position, lookup func(int) *cell) (c *cell, line, col int)
 const maxErrors = 6
 
 func (u *ui) typeErrors(c *checked, lookup func(int) *cell) {
+	u.earlier = nil
 	for i, e := range c.errs {
 		if i == maxErrors {
 			fmt.Fprintln(u.err, u.style(sGray, fmt.Sprintf("… and %d more errors", len(c.errs)-maxErrors)))
@@ -131,6 +141,21 @@ func (u *ui) typeErrors(c *checked, lookup func(int) *cell) {
 		pos := e.Fset.Position(e.Pos)
 		u.cellError(pos, e.Msg, lookup)
 	}
+	u.earlierHint()
+}
+
+// earlierHint explains how to get past errors in earlier inputs, which
+// happen when a redefinition breaks code that used the old definition.
+func (u *ui) earlierHint() {
+	if len(u.earlier) == 0 {
+		return
+	}
+	ids := make([]string, len(u.earlier))
+	for i, id := range u.earlier {
+		ids[i] = strconv.Itoa(id)
+	}
+	u.note("an earlier input no longer compiles with this one; remove it with :drop %s, or adjust this input", strings.Join(ids, " "))
+	u.earlier = nil
 }
 
 // newestID is the id of the cell the user just entered; errors elsewhere
@@ -144,6 +169,9 @@ func (u *ui) cellError(pos token.Position, msg string, lookup func(int) *cell) {
 	prefix := ""
 	if cl.committed {
 		prefix = u.style(sYellow, fmt.Sprintf("in earlier cell [%d]: ", cl.id))
+		if !slices.Contains(u.earlier, cl.id) {
+			u.earlier = append(u.earlier, cl.id)
+		}
 	}
 	src := cl.input
 	if cl.kind == stmtCell || cl.raw != "" {
@@ -155,6 +183,8 @@ func (u *ui) cellError(pos token.Position, msg string, lookup func(int) *cell) {
 var reBuildErr = regexp.MustCompile(`^(cell\d+):(\d+):(\d+): (.*)$`)
 
 func (u *ui) buildErrors(out string, lookup func(int) *cell) {
+	u.earlier = nil
+	defer u.earlierHint()
 	n := 0
 	for _, l := range strings.Split(strings.TrimSpace(out), "\n") {
 		if strings.HasPrefix(l, "#") || l == "" {
@@ -165,6 +195,7 @@ func (u *ui) buildErrors(out string, lookup func(int) *cell) {
 			col, _ := strconv.Atoi(m[3])
 			u.cellError(token.Position{Filename: m[1], Line: line, Column: col}, m[4], lookup)
 		} else {
+			u.fail()
 			fmt.Fprintln(u.err, u.style(sRed, l))
 		}
 		n++
@@ -199,20 +230,38 @@ func (u *ui) programStderr(r io.Reader, lookup func(int) *cell) {
 		case l == "":
 			inTrace = false
 		case strings.HasPrefix(l, "\t"):
-			if m := reFrameFile.FindStringSubmatch(l); m != nil {
+			if m := reFrameFile.FindStringSubmatch(l); m != nil && fn != "" {
 				id, _ := strconv.Atoi(m[2])
 				where := "cell [" + m[2] + "]"
 				if c := lookup(id); c != nil && !c.committed {
 					where = "your input"
 				}
-				fmt.Fprintln(u.err, u.style(sGray, fmt.Sprintf("    at %s (%s, line %s)", strings.TrimPrefix(fn, "main."), where, m[3])))
+				fmt.Fprintln(u.err, u.style(sGray, fmt.Sprintf("    %s (%s, line %s)", fn, where, m[3])))
 			}
+			fn = ""
+		case strings.HasPrefix(l, "created by "):
+			// The goroutine's starting point.
+			name := strings.TrimPrefix(l, "created by ")
+			if i := strings.Index(name, " in goroutine"); i >= 0 {
+				name = name[:i]
+			}
+			fn = "started by " + strings.TrimPrefix(name, "main.")
 		default:
 			if m := reFrameFunc.FindStringSubmatch(l); m != nil {
-				fn = m[1]
+				fn = "at " + funcLabel(m[1])
 			}
 		}
 	}
+}
+
+// funcLabel shortens a traceback function name: main.f -> f, and
+// main.main.func1 -> "a func literal in main".
+func funcLabel(fn string) string {
+	fn = strings.TrimPrefix(fn, "main.")
+	if i := strings.Index(fn, ".func"); i >= 0 {
+		return "a func literal in " + fn[:i]
+	}
+	return fn
 }
 
 func (u *ui) typeInfo(t types.Type) {

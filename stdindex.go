@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -56,7 +56,7 @@ func loadStdIndex(cacheDir, goVersion string) (*stdIndex, error) {
 	cache := filepath.Join(cacheDir, "std-"+goVersion+".txt")
 	data, err := os.ReadFile(cache)
 	if err != nil {
-		out, err := exec.Command("go", "list", "std").Output()
+		out, err := goCmd(context.Background(), os.TempDir(), "list", "std").Output()
 		if err != nil {
 			return nil, err
 		}

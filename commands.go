@@ -144,17 +144,29 @@ func cmdDoc(s *Session, _ *repl, arg string) bool {
 			continue
 		}
 		pkg, rest, _ := strings.Cut(a, ".")
+		if strings.Contains(pkg, "/") {
+			continue // already an import path
+		}
+		path := ""
 		for _, imp := range s.imports {
 			if imp.binding() == pkg {
-				args[i] = imp.path
-				if rest != "" {
-					args[i] += "." + rest
-				}
+				path = imp.path
+			}
+		}
+		if path == "" {
+			// Not imported yet: pick the standard library package the
+			// symbol would auto-import from.
+			sym, _, _ := strings.Cut(rest, ".")
+			path = s.resolvePackage(pkg, sym)
+		}
+		if path != "" {
+			args[i] = path
+			if rest != "" {
+				args[i] += "." + rest
 			}
 		}
 	}
-	cmd := exec.Command("go", append([]string{"doc"}, args...)...)
-	cmd.Dir = s.dir
+	cmd := goCmd(context.Background(), s.dir, append([]string{"doc"}, args...)...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -238,7 +250,11 @@ func cmdType(s *Session, _ *repl, arg string) bool {
 	if b, ok := typ.(*types.Basic); ok && t.Value == nil && b.Info()&types.IsUntyped != 0 {
 		typ = types.Default(typ) // e.g. a comparison is just a bool
 	}
-	fmt.Fprintln(s.ui.out, s.ui.code(typeArgsPlain(typ)))
+	text := typeArgsPlain(typ)
+	if t.Value != nil {
+		text += " = " + t.Value.ExactString() // a constant: show its value too
+	}
+	fmt.Fprintln(s.ui.out, s.ui.code(text))
 	if named, ok := types.Unalias(t.Type).(*types.Named); ok {
 		s.ui.typeInfo(named)
 	}

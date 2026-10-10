@@ -22,7 +22,7 @@ import (
 //go:embed goprt/*.go
 var goprtFS embed.FS
 
-const version = "0.2.3"
+const version = "0.2.4"
 
 func main() {
 	expr := flag.String("e", "", "evaluate `code` and exit")
@@ -79,6 +79,12 @@ Flags:
 		runScript(s, os.Stdin)
 	default:
 		newREPL(s).run()
+		return
+	}
+	// Scripts and -e can tell whether everything worked.
+	if u.failures > 0 {
+		s.Close()
+		os.Exit(1)
 	}
 }
 

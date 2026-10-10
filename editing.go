@@ -31,6 +31,9 @@ func (r *repl) installEditing() {
 		if pos < len(line) && strings.ContainsRune(string(line[pos:]), '\n') {
 			return false
 		}
+		if inRawString(string(line[:pos])) {
+			return false // a newline belongs to the raw string
+		}
 		if afterOpener(line, pos) {
 			// Spaces between the cursor and the rest of the line would end
 			// up leading the next line; drop them.
@@ -140,6 +143,13 @@ func (r *repl) installEditing() {
 	for action, seqs := range binds {
 		for _, seq := range seqs {
 			for _, km := range editKeymaps {
+				// In vi insert mode Esc leaves insert mode, so "Esc b" is
+				// "normal mode, back a word": keep Alt-letter style binds
+				// to emacs. Terminal key sequences (ESC [ / ESC O) are fine.
+				if km == "vi-insert" && strings.HasPrefix(seq, "\x1b") &&
+					!strings.HasPrefix(seq, "\x1b[") && !strings.HasPrefix(seq, "\x1bO") {
+					continue
+				}
 				bindKey(rl.Config, km, seq, action)
 			}
 		}
@@ -280,24 +290,24 @@ func (r *repl) stepOver(closer rune) bool {
 	if ls == 0 || !onlySpaceBefore(line, pos) {
 		return false
 	}
+	// Skip this and any further blank lines; the next non-blank character
+	// must be the closer, at the start of its line.
 	j := pos
-	for j < len(line) && (line[j] == ' ' || line[j] == '\t') {
+	lastNL := -1
+	for j < len(line) && (line[j] == ' ' || line[j] == '\t' || line[j] == '\n') {
+		if line[j] == '\n' {
+			lastNL = j
+		}
 		j++
 	}
-	if j >= len(line) || line[j] != '\n' {
+	if lastNL < 0 || j >= len(line) || line[j] != closer {
 		return false
 	}
-	k := j + 1
-	for k < len(line) && (line[k] == ' ' || line[k] == '\t') {
-		k++
-	}
-	if k >= len(line) || line[k] != closer {
-		return false
-	}
-	// Remove the empty line (its leading newline through its whitespace).
+	// Remove the blank lines: from the newline before the cursor's line up
+	// to (not including) the newline before the closer's line.
 	r.rl.History.Save()
-	r.rl.Line().Cut(ls-1, j)
-	r.rl.Cursor().Set(k - (j - (ls - 1)) + 1)
+	r.rl.Line().Cut(ls-1, lastNL)
+	r.rl.Cursor().Set(j - (lastNL - (ls - 1)) + 1)
 	return true
 }
 
@@ -350,6 +360,25 @@ func onlySpaceBefore(line []rune, pos int) bool {
 	return true
 }
 
+// inRawString reports whether the end of src is inside a raw (backquoted)
+// string literal.
+func inRawString(src string) bool {
+	var s scanner.Scanner
+	fset := token.NewFileSet()
+	file := fset.AddFile("", fset.Base(), len(src))
+	open := false
+	s.Init(file, []byte(src), func(_ token.Position, msg string) {
+		if msg == "raw string literal not terminated" {
+			open = true
+		}
+	}, 0)
+	for {
+		if _, tok, _ := s.Scan(); tok == token.EOF {
+			return open
+		}
+	}
+}
+
 // afterOpener reports whether the cursor follows an opening bracket on its
 // line (ignoring spaces) and is not at the end of the input.
 func afterOpener(line []rune, pos int) bool {
@@ -368,6 +397,9 @@ func afterOpener(line []rune, pos int) bool {
 // own line at the opener's indentation, and the cursor sits on an indented
 // line in between.
 func newlineInsert(line []rune, cursor int) (string, int) {
+	if inRawString(string(line[:cursor])) {
+		return "\n", 1 // inside a raw string, indentation would be content
+	}
 	text := newlineText(line, cursor)
 	at := len([]rune(text))
 	rest := strings.TrimLeft(string(line[cursor:]), " \t")
