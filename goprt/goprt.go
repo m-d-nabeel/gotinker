@@ -1,6 +1,6 @@
-// Package goprt is the runtime support linked into every gop session program.
+// Package goprt is the runtime support linked into every gotinker session program.
 //
-// gop re-runs the whole session on each input. Cells that already ran are
+// gotinker re-runs the whole session on each input. Cells that already ran are
 // replayed with their output muted (see mute), then Unmute is called right
 // before the new cell so only its output reaches the terminal. Results of
 // expressions and new variables are printed with Show and Var.
@@ -19,10 +19,10 @@ import (
 	"unsafe"
 )
 
-var color = os.Getenv("GOP_COLOR") == "1"
+var color = os.Getenv("GOTINKER_COLOR") == "1"
 
 func init() {
-	if os.Getenv("GOP_MUTE") == "1" {
+	if os.Getenv("GOTINKER_MUTE") == "1" {
 		mute()
 	}
 }
@@ -586,6 +586,6 @@ func sortKeys(keys []reflect.Value) {
 	})
 }
 
-// P is a no-op used by gop's completer to ask the type checker about the
+// P is a no-op used by gotinker's completer to ask the type checker about the
 // expression under the cursor.
 func P(...any) {}

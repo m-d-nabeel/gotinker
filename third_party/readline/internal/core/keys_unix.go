@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // GetCursorPos returns the current cursor position in the terminal.

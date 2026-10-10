@@ -8,8 +8,8 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/completion"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/completion"
 )
 
 var (

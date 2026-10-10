@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+import "github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 
 // viinsKeys are the default keymaps in Vim Insert mode.
 var viinsKeys = map[string]inputrc.Bind{

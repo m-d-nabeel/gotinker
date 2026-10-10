@@ -1,4 +1,4 @@
-// Command gop is an interactive Go playground for the terminal.
+// Command gotinker is an interactive Go playground for the terminal.
 //
 // Every input becomes part of a real Go program that is type-checked,
 // compiled with the installed Go toolchain and run, so all of Go works:
@@ -28,13 +28,13 @@ func main() {
 	expr := flag.String("e", "", "evaluate `code` and exit")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `gop — an interactive Go playground
+		fmt.Fprintf(os.Stderr, `gotinker — an interactive Go playground
 
 Usage:
-  gop               start the playground
-  gop file.go       load a Go file into the session, then start
-  gop -e 'code'     evaluate code and exit
-  ... | gop         evaluate Go code from stdin
+  gotinker              start the playground
+  gotinker file.go      load a Go file into the session, then start
+  gotinker -e 'code'    evaluate code and exit
+  ... | gotinker        evaluate Go code from stdin
 
 Inside the playground, type :help for commands.
 
@@ -44,14 +44,14 @@ Flags:
 	}
 	flag.Parse()
 	if *showVersion {
-		fmt.Println("gop", version)
+		fmt.Println("gotinker", version)
 		return
 	}
 
 	u := newUI()
 	s, err := newSession(u)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gop:", err)
+		fmt.Fprintln(os.Stderr, "gotinker:", err)
 		os.Exit(1)
 	}
 	defer s.Close()
@@ -66,7 +66,7 @@ Flags:
 	for _, file := range flag.Args() {
 		data, err := os.ReadFile(file)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "gop:", err)
+			fmt.Fprintln(os.Stderr, "gotinker:", err)
 			os.Exit(1)
 		}
 		evalInterruptible(s, string(data))

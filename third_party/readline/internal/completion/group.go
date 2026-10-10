@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // group is used to structure different types of completions with different

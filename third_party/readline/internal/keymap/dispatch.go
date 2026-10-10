@@ -4,9 +4,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
 )
 
 // MatchLocal incrementally attempts to match cached input keys against the local keymap.

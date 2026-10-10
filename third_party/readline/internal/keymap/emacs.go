@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+import "github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 
 var unescape = inputrc.Unescape
 

@@ -1,4 +1,4 @@
-module github.com/m-d-nabeel/gop
+module github.com/m-d-nabeel/gotinker
 
 go 1.26.0
 

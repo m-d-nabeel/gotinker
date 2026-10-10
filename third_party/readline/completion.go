@@ -3,10 +3,10 @@ package readline
 import (
 	"fmt"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/completion"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/history"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/keymap"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/completion"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/history"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/keymap"
 )
 
 func (rl *Shell) completionCommands() commands {

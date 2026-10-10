@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // Display prints the current completion list to the screen,

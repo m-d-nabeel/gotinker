@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
 )
 
 // Cursor is the cursor position in the current line buffer.

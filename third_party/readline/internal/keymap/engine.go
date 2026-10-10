@@ -3,8 +3,8 @@ package keymap
 import (
 	"sort"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
 )
 
 // Engine is used to manage the main and local keymaps for the shell.

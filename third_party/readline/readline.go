@@ -24,15 +24,15 @@ import (
 	"io"
 	"os"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/completion"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/display"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/history"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/keymap"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/macro"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/completion"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/display"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/history"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/keymap"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/macro"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // ErrInterrupt is returned when the interrupt sequence

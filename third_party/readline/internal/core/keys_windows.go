@@ -6,7 +6,7 @@ package core
 import (
 	"unsafe"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 )
 
 // Windows-specific special key codes.

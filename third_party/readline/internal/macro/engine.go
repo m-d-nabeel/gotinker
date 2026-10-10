@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/ui"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/ui"
 )
 
 // validMacroKeys - All valid macro IDs (keys) for read/write Vim registers.

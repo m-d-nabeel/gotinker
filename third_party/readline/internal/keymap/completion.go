@@ -3,7 +3,7 @@ package keymap
 import (
 	"slices"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 )
 
 // menuselectKeys are the default keymaps in menuselect mode.

@@ -3,7 +3,7 @@ package readline
 import (
 	"fmt"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/completion"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/completion"
 )
 
 // Completion represents a completion candidate.

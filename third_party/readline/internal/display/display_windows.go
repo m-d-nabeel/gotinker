@@ -4,7 +4,7 @@
 package display
 
 import (
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
 )
 
 // WatchResize redisplays the interface on terminal resize events on Windows.

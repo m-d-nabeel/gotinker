@@ -1,22 +1,22 @@
 # Contributing
 
-Thanks for helping improve gop! Bug reports, ideas and pull requests are all
+Thanks for helping improve gotinker! Bug reports, ideas and pull requests are all
 welcome.
 
 ## Reporting a bug
 
 Open an issue with the input you typed, what you expected, what happened, and
-the output of `gop -version` and `go version`. A sequence of inputs that
+the output of `gotinker -version` and `go version`. A sequence of inputs that
 reproduces the problem from a fresh session is ideal; piping it works too:
 
 ```sh
-printf 'x := 1\nx + 1\n' | gop
+printf 'x := 1\nx + 1\n' | gotinker
 ```
 
 ## Development
 
 ```sh
-git clone https://github.com/m-d-nabeel/gop && cd gop
+git clone https://github.com/m-d-nabeel/gotinker && cd gotinker
 go test ./...          # unit tests plus an end-to-end session (needs Go on PATH)
 go run .               # try your change
 ```

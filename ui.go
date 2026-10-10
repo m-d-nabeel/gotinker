@@ -16,7 +16,7 @@ import (
 	"golang.org/x/term"
 )
 
-// ui renders everything gop itself prints (results come from goprt).
+// ui renders everything gotinker itself prints (results come from goprt).
 type ui struct {
 	color bool
 	out   io.Writer

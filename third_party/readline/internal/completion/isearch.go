@@ -3,9 +3,9 @@ package completion
 import (
 	"regexp"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/keymap"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/keymap"
 )
 
 // IsearchStart starts incremental search (fuzzy-finding)

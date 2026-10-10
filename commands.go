@@ -60,7 +60,7 @@ func findCommand(name string) *command {
 	return nil
 }
 
-// runCommand executes a :command line. It reports whether gop should exit.
+// runCommand executes a :command line. It reports whether gotinker should exit.
 func runCommand(s *Session, r *repl, line string) bool {
 	line = strings.TrimPrefix(strings.TrimSpace(line), ":")
 	name, arg, _ := strings.Cut(line, " ")
@@ -395,7 +395,7 @@ func cmdEdit(s *Session, _ *repl, _ string) bool {
 	if editor == "" {
 		editor = "vi"
 	}
-	f, err := os.CreateTemp("", "gop-*.go")
+	f, err := os.CreateTemp("", "gotinker-*.go")
 	if err != nil {
 		s.ui.errorf("%v", err)
 		return false

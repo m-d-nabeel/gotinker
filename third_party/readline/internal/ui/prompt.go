@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/keymap"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/keymap"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 var (

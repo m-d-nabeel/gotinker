@@ -6,10 +6,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // Tokenizer is a method used by a (line) type to split itself according to

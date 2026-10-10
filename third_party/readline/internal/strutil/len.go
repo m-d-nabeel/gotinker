@@ -5,8 +5,8 @@ import (
 
 	"github.com/rivo/uniseg"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
 )
 
 // FormatTabs replaces all '\t' occurrences in a string with 6 spaces each.

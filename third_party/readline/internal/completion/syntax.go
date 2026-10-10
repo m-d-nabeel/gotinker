@@ -1,8 +1,8 @@
 package completion
 
 import (
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
 )
 
 // CompleteSyntax updates the line with either user-defined syntax completers, or with the builtin ones.

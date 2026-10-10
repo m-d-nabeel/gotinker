@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 )
 
 // readline global options specific to this library.

@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline"
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 )
 
 type repl struct {
@@ -21,7 +21,7 @@ type repl struct {
 }
 
 func newREPL(s *Session) *repl {
-	r := &repl{s: s, rl: readline.NewShell(inputrc.WithApp("gop"))}
+	r := &repl{s: s, rl: readline.NewShell(inputrc.WithApp("gotinker"))}
 	r.comp = newCompleter(s)
 
 	cfg := r.rl.Config
@@ -70,14 +70,14 @@ func dataDir() (string, error) {
 		}
 		dir = filepath.Join(home, ".local", "share")
 	}
-	dir = filepath.Join(dir, "gop")
+	dir = filepath.Join(dir, "gotinker")
 	return dir, os.MkdirAll(dir, 0o755)
 }
 
 func (r *repl) run() {
 	u := r.s.ui
 	fmt.Fprintf(u.out, "%s %s %s\n",
-		u.style(sBold+sCyan, "gop "+version),
+		u.style(sBold+sCyan, "gotinker "+version),
 		u.style(sGray, "· Go "+r.s.goVer+" ·"),
 		u.style(sGray, "real compiler, real Go — type :help for commands, Tab to complete, Ctrl-D to exit"))
 	for {

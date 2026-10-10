@@ -3,9 +3,9 @@ package readline
 import (
 	"unicode"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/keymap"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/strutil"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/keymap"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/strutil"
 )
 
 // commands maps widget names to their implementation.

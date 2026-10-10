@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/color"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/color"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
 )
 
 // ansiEscapeRegex matches SGR color escape sequences embedded in a line. It is

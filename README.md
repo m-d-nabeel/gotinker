@@ -1,10 +1,10 @@
-# gop — a Go playground for the terminal
+# gotinker — a Go playground for the terminal
 
-[![CI](https://github.com/m-d-nabeel/gop/actions/workflows/ci.yml/badge.svg)](https://github.com/m-d-nabeel/gop/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/m-d-nabeel/gop.svg)](https://pkg.go.dev/github.com/m-d-nabeel/gop)
+[![CI](https://github.com/m-d-nabeel/gotinker/actions/workflows/ci.yml/badge.svg)](https://github.com/m-d-nabeel/gotinker/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/m-d-nabeel/gotinker.svg)](https://pkg.go.dev/github.com/m-d-nabeel/gotinker)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-`gop` is an interactive Go REPL that runs **real Go**: every input becomes part
+`gotinker` is an interactive Go REPL that runs **real Go**: every input becomes part
 of a program that is type-checked, compiled with your installed toolchain and
 run. Generics, iterators, `range` over ints, `min`/`max`, the whole standard
 library and third-party modules all work — there is no interpreter to lag
@@ -26,12 +26,12 @@ go ❯ Point{3, 4}.Dist()
 ## Install
 
 ```sh
-go install github.com/m-d-nabeel/gop@latest
+go install github.com/m-d-nabeel/gotinker@latest
 ```
 
-This puts `gop` in `$(go env GOPATH)/bin`; make sure that is on your `PATH`.
-gop needs Go 1.26 or newer on `PATH`, since it compiles your code with it.
-Reinstall gop after upgrading Go so its type checker matches the toolchain.
+This puts `gotinker` in `$(go env GOPATH)/bin`; make sure that is on your `PATH`.
+gotinker needs Go 1.26 or newer on `PATH`, since it compiles your code with it.
+Reinstall gotinker after upgrading Go so its type checker matches the toolchain.
 
 CI runs on Linux and macOS. Windows is untested.
 
@@ -82,7 +82,7 @@ CI runs on Linux and macOS. Windows is untested.
 | `:get <module>` | add a module (`:get github.com/google/uuid@v1.6.0`) |
 | `:reset`, `:clear`, `:quit` | |
 
-Non-interactive use: `gop -e 'expr'`, `gop file.go`, or pipe code to stdin.
+Non-interactive use: `gotinker -e 'expr'`, `gotinker file.go`, or pipe code to stdin.
 
 ## How it works
 
@@ -103,9 +103,9 @@ Because the session re-runs on each input:
 
 ## Files
 
-- `~/.cache/gop/` (your OS user cache directory) — per-session build directories and the shared `go.mod`
+- `~/.cache/gotinker/` (your OS user cache directory) — per-session build directories and the shared `go.mod`
   holding fetched modules
-- `~/.local/share/gop/history` (or `$XDG_DATA_HOME/gop`) — input history
+- `~/.local/share/gotinker/history` (or `$XDG_DATA_HOME/gotinker`) — input history
 
 ## Contributing
 

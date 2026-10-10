@@ -4,12 +4,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/inputrc"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/completion"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/history"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/term"
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/ui"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/completion"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/history"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/term"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/ui"
 )
 
 var (
@@ -252,7 +252,7 @@ func (e *Engine) computeCoordinates(suggested bool) {
 func (e *Engine) AvailableHelperLines() int {
 	termHeight := term.GetLength()
 
-	// gop patch: without the cursor-position probe, startRows is -1 and the
+	// gotinker patch: without the cursor-position probe, startRows is -1 and the
 	// menu was sized to the whole terminal plus one row, scrolling the input
 	// line off the top. Assume the input is on the last row instead, so the
 	// menu always fits above it once printed.

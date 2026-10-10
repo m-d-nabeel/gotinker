@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/m-d-nabeel/gop/third_party/readline/internal/core"
+	"github.com/m-d-nabeel/gotinker/third_party/readline/internal/core"
 )
 
 // AcceptInline replaces the line buffer with the inline suggestion when one

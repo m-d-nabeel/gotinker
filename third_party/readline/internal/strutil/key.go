@@ -1,6 +1,6 @@
 package strutil
 
-import "github.com/m-d-nabeel/gop/third_party/readline/inputrc"
+import "github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 
 // ConvertMeta recursively searches for metafied keys in a sequence,
 // and replaces them with an esc prefix and their unmeta equivalent.

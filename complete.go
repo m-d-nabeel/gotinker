@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/m-d-nabeel/gop/third_party/readline"
+	"github.com/m-d-nabeel/gotinker/third_party/readline"
 )
 
 // completer provides Tab completion and signature hints from the type

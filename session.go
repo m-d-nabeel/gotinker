@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const runtimePath = "gop.session/goprt"
+const runtimePath = "gotinker.session/goprt"
 
 type cellKind int
 
@@ -37,7 +37,7 @@ type cell struct {
 	kind  cellKind
 	src   string   // code as placed in the program (statement cells include `_ = x` guards)
 	input string   // what the user typed, for :cells and error context
-	raw   string   // code before gop's edits; error positions refer to its lines
+	raw   string   // code before gotinker's edits; error positions refer to its lines
 	out   string   // code for :show/:save (raw minus a trailing display-only expression)
 	names []string // declared names; a new declaration replaces cells sharing a name
 
@@ -47,7 +47,7 @@ type cell struct {
 type importSpec struct {
 	name string // explicit alias, "" for the default name
 	path string
-	auto bool // added by gop, so it may be swapped for a same-named package
+	auto bool // added by gotinker, so it may be swapped for a same-named package
 }
 
 func (i importSpec) binding() string {
@@ -60,7 +60,7 @@ func (i importSpec) binding() string {
 // Session holds the cells of the program being built up interactively.
 type Session struct {
 	dir     string // module directory holding main.go and the goprt runtime
-	cwd     string // where the user started gop; programs run here
+	cwd     string // where the user started gotinker; programs run here
 	modTmpl string // shared go.mod/go.sum template dir, so `:get` persists
 	goVer   string // "1.26"
 
@@ -81,7 +81,7 @@ func newSession(u *ui) (*Session, error) {
 	if err != nil {
 		base = os.TempDir()
 	}
-	base = filepath.Join(base, "gop")
+	base = filepath.Join(base, "gotinker")
 	sessions := filepath.Join(base, "sessions")
 	modTmpl := filepath.Join(base, "mod")
 	for _, d := range []string{sessions, modTmpl} {
@@ -147,7 +147,7 @@ func goVersion() (string, error) {
 func (s *Session) writeModule() error {
 	gomod := filepath.Join(s.modTmpl, "go.mod")
 	if _, err := os.Stat(gomod); err != nil {
-		content := "module gop.session\n\ngo " + s.goVer + "\n"
+		content := "module gotinker.session\n\ngo " + s.goVer + "\n"
 		if err := os.WriteFile(gomod, []byte(content), 0o644); err != nil {
 			return err
 		}
@@ -500,10 +500,10 @@ func generate(in genInput) program {
 	for _, c := range in.decls {
 		fmt.Fprintf(&b, "//line cell%d:1:1\n%s\n\n", c.id, c.src)
 	}
-	b.WriteString("//line gop:1:1\nfunc main() {\n")
+	b.WriteString("//line gotinker:1:1\nfunc main() {\n")
 	depth := 0
 	for _, c := range in.replay {
-		fmt.Fprintf(&b, "{\n//line cell%d:1:1\n%s\n//line gop:1:1\n", c.id, c.src)
+		fmt.Fprintf(&b, "{\n//line cell%d:1:1\n%s\n//line gotinker:1:1\n", c.id, c.src)
 		depth++
 	}
 	p := program{cellStart: -1}
@@ -516,7 +516,7 @@ func generate(in genInput) program {
 			b.WriteString(in.current.src + "\n")
 		}
 		if in.tail != "" {
-			b.WriteString("//line gop:1:1\n" + in.tail + "\n")
+			b.WriteString("//line gotinker:1:1\n" + in.tail + "\n")
 		}
 	}
 	b.WriteString(strings.Repeat("}\n", depth))
@@ -1162,9 +1162,9 @@ func (s *Session) buildAndRun(ctx context.Context, src string, lookup func(int) 
 	cmd.Stdin = os.Stdin
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
-	cmd.Env = append(os.Environ(), "GOP_MUTE=1")
+	cmd.Env = append(os.Environ(), "GOTINKER_MUTE=1")
 	if s.ui.color {
-		cmd.Env = append(cmd.Env, "GOP_COLOR=1")
+		cmd.Env = append(cmd.Env, "GOTINKER_COLOR=1")
 	}
 
 	runStart := time.Now()
