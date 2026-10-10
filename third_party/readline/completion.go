@@ -23,7 +23,16 @@ func (rl *Shell) completionCommands() commands {
 		"accept-and-menu-complete": rl.acceptAndMenuComplete,
 		"vi-registers-complete":    rl.viRegistersComplete,
 		"menu-incremental-search":  rl.menuIncrementalSearch,
+		"accept-completion":        rl.acceptCompletion, // gotinker patch
 	}
+}
+
+// acceptCompletion keeps the selected candidate in the line and closes the
+// completion menu, without accepting the line itself. (gotinker patch: bound
+// to Enter in the menu-select keymap, where Enter used to run the input.)
+func (rl *Shell) acceptCompletion() {
+	rl.History.SkipSave()
+	rl.completer.Reset()
 }
 
 //

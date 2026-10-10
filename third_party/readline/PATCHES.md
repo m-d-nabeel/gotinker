@@ -30,3 +30,8 @@ Modifications made for gotinker:
    F5 (`ESC [15~`) or Alt sent as an ESC prefix used to be inserted as literal
    text (`^[[D`, `~`). The rest of an unmatched CSI/SS3 sequence is now
    discarded instead.
+
+5. **Enter in the completion menu** — `completion.go` (`acceptCompletion`)
+   and `internal/keymap/completion.go` (`menuselectKeys`): Enter while the
+   menu is open used to fall through to `accept-line` and run the input; it
+   now keeps the selected candidate and closes the menu.

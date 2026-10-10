@@ -229,7 +229,7 @@ func (c *completer) complete(line []rune, cursor int) readline.Completions {
 	if prefix == "" {
 		comps.PREFIX = ""
 	}
-	return comps.NoSpace()
+	return comps
 }
 
 // inStringOrComment reports whether the cursor is inside a string, rune or
@@ -498,7 +498,7 @@ func (c *completer) completeCommand(line []rune, cursor int) readline.Completion
 		}
 		comps := readline.CompleteRaw(cands)
 		comps.PREFIX = prefix
-		return comps.NoSpace()
+		return comps
 	case "help", "h":
 		var vals []string
 		for _, cmd := range commands {

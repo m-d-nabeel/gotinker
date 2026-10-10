@@ -9,6 +9,7 @@ import (
 // menuselectKeys are the default keymaps in menuselect mode.
 var menuselectKeys = map[string]inputrc.Bind{
 	unescape(`\C-i`):    {Action: "menu-complete"},
+	unescape(`\C-M`):    {Action: "accept-completion"}, // gotinker patch
 	unescape(`\C-N`):    {Action: "menu-complete"},
 	unescape(`\C-P`):    {Action: "menu-complete-backward"},
 	unescape(`\e[Z`):    {Action: "menu-complete-backward"},
