@@ -226,11 +226,26 @@ func (e *Engine) ensureInputSpace() {
 	// (startRows < 1), we cannot detect the bottom of the window, so we skip
 	// this step -- the documented degraded behavior is that a prompt at the very
 	// bottom may overlap (see disable-cursor-position-probe).
+	reserve := e.lineRows + 1
+
+	// gotinker patch: without the probe we cannot know whether the input is
+	// near the bottom, but we don't need to: printing `reserve` newlines from
+	// the input-line start scrolls the screen exactly as much as needed (not
+	// at all if there is room), and moving back up `reserve` rows returns to
+	// the same text either way. Without this, each line added at the bottom
+	// of the window was drawn one row too high, over earlier output.
 	if e.startRows < 1 {
+		term.MoveCursorBackwards(term.GetWidth())
+
+		for range reserve {
+			term.WriteString(term.NewlineReturn)
+		}
+
+		term.MoveCursorUp(reserve)
+		term.MoveCursorForwards(e.startCols)
+
 		return
 	}
-
-	reserve := e.lineRows + 1
 
 	deficit := (e.startRows + reserve) - term.GetLength()
 	if deficit <= 0 {

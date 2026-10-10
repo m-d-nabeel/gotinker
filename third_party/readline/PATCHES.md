@@ -35,3 +35,10 @@ Modifications made for gotinker:
    and `internal/keymap/completion.go` (`menuselectKeys`): Enter while the
    menu is open used to fall through to `accept-line` and run the input; it
    now keeps the selected candidate and closes the menu.
+
+6. **Bottom-of-window space without the probe** —
+   `internal/display/refresh.go` (`ensureInputSpace`): with the probe off the
+   function returned early, so when a multi-line input grew on the last rows
+   of the window each new line was drawn one row too high, over earlier
+   output. It now reserves the rows by printing newlines and moving back up,
+   which scrolls only when needed.
