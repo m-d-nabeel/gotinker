@@ -96,7 +96,8 @@ all work; the session is a real Go program compiled with your Go toolchain.
   `+u.code(`for i := range 3 { fmt.Println(i) }`)+`
 
 `+u.style(sBold, "Keys")+`
-  Enter         run (on the last line), or a new indented line elsewhere
+  Enter         run; but a new indented line when not on the last line,
+                or right after an opening bracket ({|} opens the block)
   Alt-Enter     new line, always          Ctrl-J   run from anywhere
   ↑ / ↓         move between lines; history from the first / last line
   Tab           indent at the start of a line, otherwise complete

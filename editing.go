@@ -19,13 +19,26 @@ var editKeymaps = []string{"emacs", "emacs-standard", "vi-insert"}
 
 func (r *repl) installEditing() {
 	rl := r.rl
-	rl.NewlineText = newlineText
+	rl.NewlineText = newlineInsert
 
-	// Enter inserts a newline (instead of running) while the cursor is not
-	// on the last line, so lines can be added inside a finished block.
+	// Enter inserts a newline instead of running while the cursor is not on
+	// the last line (so lines can be added inside a finished block), or sits
+	// just after an opening bracket (so `{|}` opens the block for its body).
 	rl.AcceptMultiline = func(line []rune) bool {
 		pos := rl.Cursor().Pos()
 		if pos < len(line) && strings.ContainsRune(string(line[pos:]), '\n') {
+			return false
+		}
+		if afterOpener(line, pos) {
+			// Spaces between the cursor and the rest of the line would end
+			// up leading the next line; drop them.
+			end := pos
+			for end < len(line) && (line[end] == ' ' || line[end] == '\t') {
+				end++
+			}
+			if end > pos {
+				rl.Line().Cut(pos, end)
+			}
 			return false
 		}
 		return inputComplete(string(line))
@@ -46,7 +59,9 @@ func (r *repl) installEditing() {
 			}
 		},
 		"gotinker-newline": func() {
-			r.insert(newlineText(*rl.Line(), rl.Cursor().Pos()))
+			text, at := newlineInsert(*rl.Line(), rl.Cursor().Pos())
+			r.insert(text)
+			rl.Cursor().Move(at - len([]rune(text)))
 		},
 		"gotinker-run": func() {
 			rl.Cursor().Set(len(*rl.Line()))
@@ -232,6 +247,35 @@ func onlySpaceBefore(line []rune, pos int) bool {
 		}
 	}
 	return true
+}
+
+// afterOpener reports whether the cursor follows an opening bracket on its
+// line (ignoring spaces) and is not at the end of the input.
+func afterOpener(line []rune, pos int) bool {
+	if strings.TrimSpace(string(line[pos:])) == "" {
+		return false // at the end: the usual completeness rules apply
+	}
+	i := pos
+	for i > lineStart(line, pos) && (line[i-1] == ' ' || line[i-1] == '\t') {
+		i--
+	}
+	return i > 0 && strings.ContainsRune("{([", line[i-1])
+}
+
+// newlineInsert returns the text for a line break at cursor and where the
+// cursor lands in it. Between a bracket pair (`{|}`) the closer moves to its
+// own line at the opener's indentation, and the cursor sits on an indented
+// line in between.
+func newlineInsert(line []rune, cursor int) (string, int) {
+	text := newlineText(line, cursor)
+	at := len([]rune(text))
+	rest := strings.TrimLeft(string(line[cursor:]), " \t")
+	if afterOpener(line, cursor) && rest != "" && strings.ContainsRune(")]}", []rune(rest)[0]) {
+		cur := string(line[lineStart(line, cursor):cursor])
+		base := cur[:len(cur)-len(strings.TrimLeft(cur, " \t"))]
+		text += "\n" + base
+	}
+	return text, at
 }
 
 // newlineText returns the newline plus indentation for a line break at

@@ -699,13 +699,15 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// This has the nice advantage of being able to work
 	// in multiline mode even in the middle of the buffer.
 	// gotinker patch: the caller may supply the newline text (indentation).
-	text := []rune("\n")
+	text, at := []rune("\n"), 1
 	if rl.NewlineText != nil {
-		text = []rune(rl.NewlineText(*rl.line, rl.cursor.Pos()))
+		var s string
+		s, at = rl.NewlineText(*rl.line, rl.cursor.Pos())
+		text = []rune(s)
 	}
 
 	rl.line.Insert(rl.cursor.Pos(), text...)
-	rl.cursor.Move(len(text))
+	rl.cursor.Move(at)
 }
 
 func (rl *Shell) insertAutosuggestPartial(emacs bool) {

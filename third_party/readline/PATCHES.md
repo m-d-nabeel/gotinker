@@ -22,7 +22,8 @@ Modifications made for gotinker:
 
 3. **Newline text hook** — `shell.go`, `history.go` (`acceptLineWith`): a new
    `Shell.NewlineText` field lets the caller choose the text inserted when
-   Enter does not accept the line, so gotinker can auto-indent.
+   Enter does not accept the line, and where the cursor lands within it, so
+   gotinker can auto-indent and split `{}` / `()` / `[]` onto separate lines.
 
 4. **Unbound escape sequences are dropped** — `emacs.go` (`selfInsert`,
    `dropEscapeSequence`, `dropUntilFinal`) and

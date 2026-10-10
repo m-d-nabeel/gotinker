@@ -253,3 +253,34 @@ func TestBindKeyReplacesMetaForm(t *testing.T) {
 		t.Errorf("bind = %q", got)
 	}
 }
+
+func TestNewlineInsertSplitsBrackets(t *testing.T) {
+	cases := []struct {
+		line   string // | marks the cursor
+		text   string
+		cursor int
+	}{
+		{"f(func() bool {|})", "\n\t\n", 2}, // closer moves to its own line
+		{"\tif x {|}", "\n\t\t\n\t", 3},     // ... at the opener's indentation
+		{"xs := []int{|}", "\n\t\n", 2},
+		{"fmt.Println(|1)", "\n\t", 2}, // other text just moves down
+		{"x := 1|", "\n", 1},           // plain newline
+		{"switch x {|}", "\n\n", 1},    // case clauses sit at switch level
+	}
+	for _, c := range cases {
+		i := strings.Index(c.line, "|")
+		line := []rune(strings.Replace(c.line, "|", "", 1))
+		pos := len([]rune(c.line[:i]))
+		text, at := newlineInsert(line, pos)
+		if text != c.text || at != c.cursor {
+			t.Errorf("newlineInsert(%q) = %q, %d; want %q, %d", c.line, text, at, c.text, c.cursor)
+		}
+	}
+	for line, want := range map[string]bool{"f(|)": true, "if x { |}": true, "f(x)|": false, "x := {|": false, "a|b": false} {
+		i := strings.Index(line, "|")
+		r := []rune(strings.Replace(line, "|", "", 1))
+		if got := afterOpener(r, len([]rune(line[:i]))); got != want {
+			t.Errorf("afterOpener(%q) = %v, want %v", line, got, want)
+		}
+	}
+}

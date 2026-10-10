@@ -59,7 +59,8 @@ CI runs on Linux and macOS. Windows is untested.
   `{`, `(` or trailing operator, with auto-indent (and gofmt-style `case`
   alignment); closing brackets dedent; ↑/↓ move between lines and reach
   history only from the first/last line; Enter on an earlier line adds a line
-  there, Alt-Enter always adds one, Ctrl-J runs from anywhere; Tab indents at
+  there, Enter between brackets (`{|}`) opens them onto separate lines,
+  Alt-Enter always adds a line, Ctrl-J runs from anywhere; Tab indents at
   the start of a line and completes elsewhere; Alt-←/→ and Alt-Backspace work
   on Go identifiers. Pasting a type with its methods and code using them
   just works.
