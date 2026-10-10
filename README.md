@@ -57,7 +57,8 @@ CI runs on Linux and macOS. Windows is untested.
   highlighted.
 - **A real multi-line editor** — blocks open automatically on an unclosed
   `{`, `(` or trailing operator, with auto-indent (and gofmt-style `case`
-  alignment); closing brackets dedent; ↑/↓ move between lines and reach
+  alignment); brackets and quotes close automatically (typing the closer, or `}` on
+  the line after, steps over it) and closing brackets dedent; ↑/↓ move between lines and reach
   history only from the first/last line; Enter on an earlier line adds a line
   there, Enter between brackets (`{|}`) opens them onto separate lines,
   Alt-Enter always adds a line, Ctrl-J runs from anywhere; Tab indents at

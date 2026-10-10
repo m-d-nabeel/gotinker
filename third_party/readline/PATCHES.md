@@ -43,3 +43,13 @@ Modifications made for gotinker:
    of the window each new line was drawn one row too high, over earlier
    output. It now reserves the rows by printing newlines and moving back up,
    which scrolls only when needed.
+
+7. **Pair deletion on its own** — `emacs.go` (`backwardDeleteChar`): a new
+   `autopairs-delete` option makes Backspace inside an empty pair (`(|)`,
+   `"|"`) delete both characters, without enabling `autopairs` insertion
+   (which also pairs `<` and so breaks `x < y` in Go). gotinker inserts pairs
+   itself.
+
+8. **^C echoed at the end of the input** — `emacs.go` (`abort`): Ctrl-C
+   echoed `^C` at the cursor, overwriting the text after it; the cursor now
+   moves to the end of the input first.

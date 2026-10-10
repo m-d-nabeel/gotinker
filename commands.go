@@ -101,6 +101,8 @@ all work; the session is a real Go program compiled with your Go toolchain.
   Alt-Enter     new line, always          Ctrl-J   run from anywhere
   ↑ / ↓         move between lines; history from the first / last line
   Tab           indent at the start of a line, otherwise complete
+  ( [ { " '     close automatically (backquotes too); typing the closer
+                steps over it, Backspace in an empty pair deletes both
   Alt-← / Alt-→ previous / next word      Alt-Backspace / Alt-D  delete word
   Ctrl-R        search history            →  accept the grey suggestion
   Ctrl-X Ctrl-E edit the input in $EDITOR

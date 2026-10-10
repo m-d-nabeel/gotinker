@@ -20,6 +20,8 @@ var editKeymaps = []string{"emacs", "emacs-standard", "vi-insert"}
 func (r *repl) installEditing() {
 	rl := r.rl
 	rl.NewlineText = newlineInsert
+	// Backspace inside an empty pair deletes both halves.
+	_ = rl.Config.Set("autopairs-delete", true)
 
 	// Enter inserts a newline instead of running while the cursor is not on
 	// the last line (so lines can be added inside a finished block), or sits
@@ -73,9 +75,26 @@ func (r *repl) installEditing() {
 			r.alignCase()
 			r.insert(":")
 		},
+		"gotinker-open": func() {
+			keys := rl.Keys.Caller()
+			if len(keys) == 0 {
+				return
+			}
+			r.openPair(keys[0])
+		},
+		"gotinker-quote": func() {
+			keys := rl.Keys.Caller()
+			if len(keys) == 0 {
+				return
+			}
+			r.quote(keys[0])
+		},
 		"gotinker-close": func() {
 			keys := rl.Keys.Caller()
 			if len(keys) == 0 {
+				return
+			}
+			if r.stepOver(keys[0]) {
 				return
 			}
 			r.dedent()
@@ -108,6 +127,8 @@ func (r *repl) installEditing() {
 		// Ctrl-J runs the input from anywhere in it.
 		"gotinker-run":   {"\n"},
 		"gotinker-close": {"}", ")", "]"},
+		"gotinker-open":  {"{", "(", "["},
+		"gotinker-quote": {"\"", "'", "`"},
 		"gotinker-colon": {":"},
 		// Alt/Ctrl+arrows (xterm, kitty, ...), Esc-prefixed Alt+arrows
 		// (terminals where Alt sends ESC), and Alt-b / Alt-f.
@@ -198,6 +219,86 @@ func (r *repl) dedent() {
 		r.rl.Line().Cut(pos-n, pos)
 		r.rl.Cursor().Set(pos - n)
 	}
+}
+
+var closerOf = map[rune]rune{'(': ')', '[': ']', '{': '}'}
+
+// pairAllowed reports whether a pair may be auto-inserted at pos: not inside
+// a string or comment, and only before the end of the line, a space or a
+// closing/separating character (so `(x` does not become `()x`).
+func pairAllowed(line []rune, pos int) bool {
+	if inStringOrComment(string(line[:pos])) {
+		return false
+	}
+	return pos == len(line) || strings.ContainsRune(" \t\n)]},;:", line[pos])
+}
+
+// openPair inserts an opening bracket, with its closer when allowed.
+func (r *repl) openPair(open rune) {
+	line, pos := *r.rl.Line(), r.rl.Cursor().Pos()
+	if pairAllowed(line, pos) {
+		r.insert(string(open) + string(closerOf[open]))
+		r.rl.Cursor().Dec()
+		return
+	}
+	r.insert(string(open))
+}
+
+// quote types a quote character: stepping over an auto-inserted closing
+// quote, inserting a pair outside strings, or a single quote otherwise.
+func (r *repl) quote(q rune) {
+	line, pos := *r.rl.Line(), r.rl.Cursor().Pos()
+	before := string(line[:pos])
+	if pos < len(line) && line[pos] == q && inStringOrComment(before) {
+		r.rl.Cursor().Inc() // closing the literal we are in
+		return
+	}
+	prevIdent := pos > 0 && isWordRune(line[pos-1])
+	if !inStringOrComment(before) && !prevIdent && pairAllowed(line, pos) {
+		r.insert(string(q) + string(q))
+		r.rl.Cursor().Dec()
+		return
+	}
+	r.insert(string(q))
+}
+
+// stepOver moves past a closer that is already there instead of typing a
+// second one: right after the cursor, or (when the cursor is on an empty
+// line) at the start of the next line, which happens after Enter opened an
+// auto-closed block and the user types the closing brace out of habit. The
+// empty line is removed in that case.
+func (r *repl) stepOver(closer rune) bool {
+	line, pos := *r.rl.Line(), r.rl.Cursor().Pos()
+	if inStringOrComment(string(line[:pos])) {
+		return false
+	}
+	if pos < len(line) && line[pos] == closer {
+		r.rl.Cursor().Inc()
+		return true
+	}
+	ls := lineStart(line, pos)
+	if ls == 0 || !onlySpaceBefore(line, pos) {
+		return false
+	}
+	j := pos
+	for j < len(line) && (line[j] == ' ' || line[j] == '\t') {
+		j++
+	}
+	if j >= len(line) || line[j] != '\n' {
+		return false
+	}
+	k := j + 1
+	for k < len(line) && (line[k] == ' ' || line[k] == '\t') {
+		k++
+	}
+	if k >= len(line) || line[k] != closer {
+		return false
+	}
+	// Remove the empty line (its leading newline through its whitespace).
+	r.rl.History.Save()
+	r.rl.Line().Cut(ls-1, j)
+	r.rl.Cursor().Set(k - (j - (ls - 1)) + 1)
+	return true
 }
 
 // alignCase moves a `case ...` / `default` line being finished with ':'

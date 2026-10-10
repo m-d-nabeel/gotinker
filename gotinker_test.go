@@ -284,3 +284,22 @@ func TestNewlineInsertSplitsBrackets(t *testing.T) {
 		}
 	}
 }
+
+func TestPairAllowed(t *testing.T) {
+	cases := map[string]bool{
+		"f|":            true,  // end of input
+		"f| x":          true,  // before a space
+		"f(g|)":         true,  // before a closer
+		"|x":            false, // before an identifier: `(x` must not become `()x`
+		`s := "a|"`:     false, // inside a string
+		"// note |":     false, // inside a comment
+		"x := []int{|}": true,
+	}
+	for c, want := range cases {
+		i := strings.Index(c, "|")
+		line := []rune(strings.Replace(c, "|", "", 1))
+		if got := pairAllowed(line, len([]rune(c[:i]))); got != want {
+			t.Errorf("pairAllowed(%q) = %v, want %v", c, got, want)
+		}
+	}
+}

@@ -372,7 +372,9 @@ func (rl *Shell) backwardDeleteChar() {
 	switch vii {
 	case 1:
 		// Handle removal of autopairs characters.
-		if rl.Config.GetBool("autopairs") {
+		// gotinker patch: "autopairs-delete" enables only this part, for
+		// callers that insert pairs themselves.
+		if rl.Config.GetBool("autopairs") || rl.Config.GetBool("autopairs-delete") {
 			completion.AutopairDelete(rl.line, rl.cursor)
 		}
 
@@ -1328,6 +1330,12 @@ func (rl *Shell) abort() {
 	}
 
 	if rl.Config.GetBool("echo-control-characters") {
+		// gotinker patch: echo ^C after the whole input rather than at the
+		// cursor, where it overwrote the text after it (often an
+		// auto-inserted closing bracket).
+		rl.cursor.Set(rl.line.Len())
+		rl.Display.Refresh()
+
 		key := rl.Keys.Caller()
 		if key[0] == rune(inputrc.Unescape(`\C-C`)[0]) {
 			quoted, _ := strutil.Quote(key[0])
