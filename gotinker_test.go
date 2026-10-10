@@ -8,27 +8,32 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/m-d-nabeel/gotinker/third_party/readline/inputrc"
 )
 
 func TestInputComplete(t *testing.T) {
 	cases := map[string]bool{
-		"x := 1":                    true,
-		"for i := range 3 {":        false,
-		"for i := range 3 {\n}":     true,
-		"fmt.Println(1,":            false,
-		"x := 1 +":                  false,
-		"s := `raw":                 false,
-		"s := `raw\nmore`":          true,
-		"x++":                       true,
-		":help":                     true,
-		"f(\n":                      false,
-		"f(\n\n\n":                  true, // two empty lines force evaluation
-		"m := map[string]int{":      false,
-		"// a comment {":            true,
-		"x := \"{\"":                true,
-		"return a.":                 false,
-		"if x {\n} else {\n":        false,
-		"type T struct {\nA int\n}": true,
+		"x := 1":                     true,
+		"for i := range 3 {":         false,
+		"for i := range 3 {\n}":      true,
+		"fmt.Println(1,":             false,
+		"x := 1 +":                   false,
+		"s := `raw":                  false,
+		"s := `raw\nmore`":           true,
+		"x++":                        true,
+		":help":                      true,
+		"f(\n":                       false,
+		"f(\n\n\n":                   true, // two empty lines force evaluation
+		"f(\n\t\n\t":                 true, // ... even when auto-indented
+		"f(\n\t":                     false,
+		"func f() {\n\tx := 1\n\n\n": false, // blank lines inside a block are fine
+		"m := map[string]int{":       false,
+		"// a comment {":             true,
+		"x := \"{\"":                 true,
+		"return a.":                  false,
+		"if x {\n} else {\n":         false,
+		"type T struct {\nA int\n}":  true,
 	}
 	for src, want := range cases {
 		if got := inputComplete(src); got != want {
@@ -169,6 +174,9 @@ func TestSessionEndToEnd(t *testing.T) {
 		{"var z = sq(2)", "z = 4"},
 		{"panic(\"boom\")", "panic: boom"},
 		{"z + 1", "5  int"}, // the panic was discarded; the session still works
+		// A pasted type, method and code using them.
+		{"type T struct{ N int }\nfunc (t T) Double() int { return t.N * 2 }\nT{N: 21}.Double()", "42  int"},
+		{"func (t T) Triple() int { return t.N * 3 }", "func (T) Triple() int"},
 	}
 	for _, st := range steps {
 		out.Reset()
@@ -187,5 +195,61 @@ func TestSessionEndToEnd(t *testing.T) {
 	cmd.Dir = dir
 	if msg, err := cmd.CombinedOutput(); err != nil {
 		t.Errorf("exported program does not build: %v\n%s\n%s", err, msg, src)
+	}
+}
+
+func TestNewlineText(t *testing.T) {
+	cases := []struct{ before, want string }{
+		{"x := 1", "\n"},
+		{"func f() {", "\n\t"},
+		{"\tif x {", "\n\t\t"},
+		{"\tfmt.Println(", "\n\t\t"},
+		{"switch x {", "\n"},          // case clauses sit at the switch's level
+		{"case 1:", "\n\t"},           // ... and their bodies one level in
+		{"\tfoo() // call {", "\n\t"}, // comments are ignored
+	}
+	for _, c := range cases {
+		line := []rune("prev\n" + c.before)
+		if got := newlineText(line, len(line)); got != c.want {
+			t.Errorf("newlineText(%q) = %q, want %q", c.before, got, c.want)
+		}
+	}
+}
+
+func TestWordMotion(t *testing.T) {
+	line := []rune("fmt.Println(strings.ToUpper(name), x+1)")
+	var stops []string
+	for pos := len(line); pos > 0; {
+		pos = backwardWord(line, pos)
+		stops = append(stops, string(line[pos:forwardWord(line, pos)]))
+	}
+	want := "1 x name ToUpper strings Println fmt"
+	if got := strings.Join(stops, " "); got != want {
+		t.Errorf("backward word stops = %q, want %q", got, want)
+	}
+	if got := forwardWord(line, 0); got != 3 {
+		t.Errorf("forwardWord from 0 = %d, want 3 (end of fmt)", got)
+	}
+}
+
+func TestTopLevelUnits(t *testing.T) {
+	src := "type T struct{ N int }\nfunc (t T) Double() int {\n\treturn t.N * 2\n}\nx := T{N: 1}; x.Double()"
+	got := topLevelUnits(src)
+	want := []string{"type T struct{ N int }", "func (t T) Double() int {\n\treturn t.N * 2\n}", "x := T{N: 1}", "x.Double()"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("topLevelUnits = %q\nwant %q", got, want)
+	}
+}
+
+func TestBindKeyReplacesMetaForm(t *testing.T) {
+	cfg := inputrc.NewDefaultConfig()
+	up := inputrc.Unescape(`\M-[A`) // stored in meta form by default
+	cfg.Binds["emacs"][up] = inputrc.Bind{Action: "previous-history"}
+	bindKey(cfg, "emacs", "\x1b[A", "up-line-or-history")
+	if _, ok := cfg.Binds["emacs"][up]; ok {
+		t.Error("meta-form bind for the same keys was not removed")
+	}
+	if got := cfg.Binds["emacs"]["\x1b[A"].Action; got != "up-line-or-history" {
+		t.Errorf("bind = %q", got)
 	}
 }

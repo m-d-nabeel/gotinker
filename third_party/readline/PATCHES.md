@@ -19,3 +19,14 @@ Modifications made for gotinker:
    and menus were sized one row taller than the terminal, pushing the input
    line off-screen and leaving debris when the menu closed. The patch assumes
    the input is on the last row in that case.
+
+3. **Newline text hook** — `shell.go`, `history.go` (`acceptLineWith`): a new
+   `Shell.NewlineText` field lets the caller choose the text inserted when
+   Enter does not accept the line, so gotinker can auto-indent.
+
+4. **Unbound escape sequences are dropped** — `emacs.go` (`selfInsert`,
+   `dropEscapeSequence`, `dropUntilFinal`) and
+   `internal/keymap/dispatch.go` (`dispatchKeys`, `isCSIFinal`): keys such as
+   F5 (`ESC [15~`) or Alt sent as an ESC prefix used to be inserted as literal
+   text (`^[[D`, `~`). The rest of an unmatched CSI/SS3 sequence is now
+   discarded instead.

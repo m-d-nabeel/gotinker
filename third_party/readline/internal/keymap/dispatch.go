@@ -146,6 +146,24 @@ func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind,
 			// an empty byte.
 			core.PopKey(m.keys)
 
+			// gotinker patch: an unbound CSI sequence (e.g. F5, "ESC [15~")
+			// fails to match part-way through; discard the rest of it so
+			// its trailing bytes are not inserted as text.
+			if len(read) >= 3 && read[0] == byte(inputrc.Esc) && read[1] == '[' && !isCSIFinal(key) {
+				for {
+					next, empty := core.PeekKey(m.keys)
+					if empty {
+						break
+					}
+
+					core.PopKey(m.keys)
+
+					if isCSIFinal(next) {
+						break
+					}
+				}
+			}
+
 			break
 		}
 
@@ -288,3 +306,6 @@ func (m *Engine) isEscapeKey() bool {
 
 	return true
 }
+
+// isCSIFinal reports whether b ends a CSI escape sequence. (gotinker patch)
+func isCSIFinal(b byte) bool { return b >= 0x40 && b <= 0x7e }

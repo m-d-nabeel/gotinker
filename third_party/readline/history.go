@@ -698,8 +698,14 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// and insert a newline where our cursor value is.
 	// This has the nice advantage of being able to work
 	// in multiline mode even in the middle of the buffer.
-	rl.line.Insert(rl.cursor.Pos(), '\n')
-	rl.cursor.Inc()
+	// gotinker patch: the caller may supply the newline text (indentation).
+	text := []rune("\n")
+	if rl.NewlineText != nil {
+		text = []rune(rl.NewlineText(*rl.line, rl.cursor.Pos()))
+	}
+
+	rl.line.Insert(rl.cursor.Pos(), text...)
+	rl.cursor.Move(len(text))
 }
 
 func (rl *Shell) insertAutosuggestPartial(emacs bool) {

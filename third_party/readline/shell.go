@@ -53,6 +53,11 @@ type Shell struct {
 	// keep reading input on a newline (thus, insert a newline and read).
 	AcceptMultiline func(line []rune) (accept bool)
 
+	// NewlineText, when set, returns the text inserted when the line is not
+	// accepted and a newline is added at the cursor (gotinker patch: used to
+	// auto-indent). It defaults to a bare "\n".
+	NewlineText func(line []rune, cursor int) string
+
 	// SyntaxHighlighter is a helper function to provide syntax highlighting.
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func(line []rune) string

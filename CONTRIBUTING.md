@@ -28,7 +28,8 @@ Layout:
 | `session.go` | parses inputs into cells, generates and type-checks the program, builds and runs it |
 | `goprt/` | runtime linked into every session program: value printer, output muting, panic reports |
 | `complete.go` | Tab completion and signature hints, via `go/types` |
-| `repl.go`, `commands.go`, `ui.go`, `highlight.go` | the line editor, `:commands` and terminal output |
+| `repl.go`, `editing.go` | the prompt loop and Go-aware line editing (indent, keys, word motion) |
+| `commands.go`, `ui.go`, `highlight.go` | `:commands`, terminal output, syntax highlighting |
 | `export.go` | `:show` / `:save` |
 | `third_party/readline` | patched line editor, see `PATCHES.md` there |
 

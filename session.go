@@ -201,12 +201,108 @@ func (s *Session) parseInput(src string) (*parsed, error) {
 	if declErr == nil {
 		return p, nil
 	}
-	if _, stmtErr := parseStmts(src); stmtErr == nil {
+	_, stmtErr := parseStmts(src)
+	if stmtErr == nil {
+		// A type pasted along with statements also parses as a local
+		// type; put it at package level, as when typed on its own, so
+		// methods can be declared on it.
+		if hasTypeUnit(src) {
+			if mixed, ok := s.splitMixed(src); ok {
+				return mixed, nil
+			}
+		}
 		return &parsed{stmts: src}, nil
-	} else if !declKeyword.MatchString(src) || strings.HasPrefix(trimmed, "var") || strings.HasPrefix(trimmed, "const") {
+	}
+	if mixed, ok := s.splitMixed(src); ok {
+		return mixed, nil
+	}
+	if !declKeyword.MatchString(src) || strings.HasPrefix(trimmed, "var") || strings.HasPrefix(trimmed, "const") {
 		return nil, stmtErr
 	}
 	return nil, declErr
+}
+
+// splitMixed handles input that mixes package-level declarations with
+// statements, such as a pasted type, its methods and code that uses them.
+// Each top-level unit is classified on its own: declarations go to package
+// level (so methods can be declared), statements run in order.
+func (s *Session) splitMixed(src string) (*parsed, bool) {
+	units := topLevelUnits(src)
+	if len(units) < 2 {
+		return nil, false
+	}
+	p := &parsed{}
+	var stmts []string
+	for _, u := range units {
+		if d, err := s.parseDecls(u, false); err == nil {
+			p.decls = append(p.decls, d.decls...)
+			p.imports = append(p.imports, d.imports...)
+			if d.stmts != "" {
+				stmts = append(stmts, d.stmts)
+			}
+			continue
+		}
+		if _, err := parseStmts(u); err != nil {
+			return nil, false
+		}
+		stmts = append(stmts, u)
+	}
+	if len(p.decls)+len(p.imports) == 0 {
+		return nil, false
+	}
+	p.stmts = strings.Join(stmts, "\n")
+	return p, true
+}
+
+func hasTypeUnit(src string) bool {
+	units := topLevelUnits(src)
+	if len(units) < 2 {
+		return false
+	}
+	for _, u := range units {
+		if strings.HasPrefix(u, "type ") || strings.HasPrefix(u, "type(") {
+			return true
+		}
+	}
+	return false
+}
+
+// topLevelUnits splits src at statement boundaries (newlines that end a
+// statement, and semicolons) outside any brackets.
+func topLevelUnits(src string) []string {
+	var sc scanner.Scanner
+	fset := token.NewFileSet()
+	file := fset.AddFile("", fset.Base(), len(src))
+	sc.Init(file, []byte(src), func(token.Position, string) {}, 0)
+	var units []string
+	depth, start := 0, 0
+	add := func(end int) {
+		if u := strings.TrimSpace(src[start:end]); u != "" {
+			units = append(units, u)
+		}
+	}
+	for {
+		pos, tok, _ := sc.Scan()
+		if tok == token.EOF {
+			break
+		}
+		switch tok {
+		case token.LPAREN, token.LBRACE, token.LBRACK:
+			depth++
+		case token.RPAREN, token.RBRACE, token.RBRACK:
+			depth--
+		case token.SEMICOLON:
+			if depth == 0 {
+				off := file.Offset(pos)
+				add(off)
+				start = off + 1
+			}
+		}
+	}
+	if start < len(src) {
+		add(len(src))
+	}
+	return units
 }
 
 func (s *Session) parseDecls(src string, file bool) (*parsed, error) {
@@ -883,8 +979,20 @@ func (s *Session) evalDecls(ctx context.Context, decls, newDecls []*cell, import
 	}
 	s.decls = decls
 	s.imports = mergeImports(s.imports, c.imports)
+	s.announce(c, newDecls)
+}
+
+// announce commits new declarations and prints a ✓ line for each (variables
+// are skipped: they are printed with their values).
+func (s *Session) announce(c *checked, newDecls []*cell) {
 	for _, d := range newDecls {
 		d.committed = true
+	}
+	s.printDecls(c, newDecls)
+}
+
+func (s *Session) printDecls(c *checked, newDecls []*cell) {
+	for _, d := range newDecls {
 		for _, n := range d.names {
 			if strings.Contains(n, ".") {
 				s.ui.declared(methodString(c.pkg, n))
@@ -895,7 +1003,7 @@ func (s *Session) evalDecls(ctx context.Context, decls, newDecls []*cell, import
 				continue
 			}
 			if _, ok := obj.(*types.Var); ok {
-				continue // already printed with its value
+				continue
 			}
 			s.ui.declared(objectString(obj))
 		}
@@ -1011,6 +1119,7 @@ func (s *Session) evalStmts(ctx context.Context, decls, newDecls []*cell, import
 		}
 	}
 	run := &cell{id: plan.id, kind: stmtCell, src: applyEdits(plan.src, edits)}
+	s.printDecls(c, newDecls) // declarations are final once they type-check
 	in = genInput{decls: decls, replay: s.stmts, imports: c.imports, current: run, tail: tail.String()}
 	prog := generate(in)
 	if !s.buildAndRun(ctx, prog.src, s.cellByID(decls, cur)) {

@@ -55,9 +55,16 @@ CI runs on Linux and macOS. Windows is untested.
   still typing, each with its signature.
 - **Signature hints** while typing a call, with the current argument
   highlighted.
-- **Syntax highlighting**, multi-line editing (opens automatically on an
-  unclosed `{`, `(` or trailing operator), persistent history with search
-  (Ctrl-R) and fish-style suggestions, `.inputrc` support (vi mode too).
+- **A real multi-line editor** — blocks open automatically on an unclosed
+  `{`, `(` or trailing operator, with auto-indent (and gofmt-style `case`
+  alignment); closing brackets dedent; ↑/↓ move between lines and reach
+  history only from the first/last line; Enter on an earlier line adds a line
+  there, Alt-Enter always adds one, Ctrl-J runs from anywhere; Tab indents at
+  the start of a line and completes elsewhere; Alt-←/→ and Alt-Backspace work
+  on Go identifiers. Pasting a type with its methods and code using them
+  just works.
+- **Syntax highlighting**, persistent history with search (Ctrl-R) and
+  fish-style suggestions, `.inputrc` support (vi mode too).
 - **Errors point at your input** with a caret; panics show a short trace
   through your cells; a failing input is discarded so the session stays
   valid.

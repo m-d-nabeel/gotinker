@@ -431,6 +431,21 @@ func (rl *Shell) selfInsert() {
 
 	key := rl.Keys.Caller()
 
+	// gotinker patch: an escape sequence that matched no bind (e.g. a
+	// function key, or Alt+arrow sent as ESC ESC [ D) used to be inserted
+	// as literal text ("^[[D"). Drop it instead.
+	if len(key) > 0 && key[0] == inputrc.Esc {
+		// The dispatcher may already have consumed part of the sequence
+		// (e.g. "ESC [15" of F5's "ESC [15~") while matching longer binds.
+		if len(key) > 2 && key[1] == '[' && (key[len(key)-1] < 0x40 || key[len(key)-1] > 0x7e) {
+			dropUntilFinal(rl.Keys)
+		} else if len(key) == 1 {
+			dropEscapeSequence(rl.Keys)
+		}
+
+		return
+	}
+
 	// Handle autopair insertion (for the closer only)
 	searching, _, _ := rl.completer.NonIncrementallySearching()
 	isearch := rl.Keymap.Local() == keymap.Isearch
@@ -1700,4 +1715,43 @@ func (rl *Shell) selectKeywordPrev() {
 	// but the cursor should be moved to the end of it.
 	rl.cursor.Set(epos)
 	rl.selection.Visual(false)
+}
+
+// dropEscapeSequence discards the rest of a CSI ("ESC [ params final") or
+// SS3 ("ESC O final") sequence whose ESC has already been consumed.
+// (gotinker patch)
+func dropEscapeSequence(keys *core.Keys) {
+	next, empty := core.PeekKey(keys)
+	if empty {
+		return
+	}
+
+	switch next {
+	case '[':
+		core.PopKey(keys)
+		dropUntilFinal(keys)
+	case 'O':
+		core.PopKey(keys)
+		core.PopKey(keys)
+	case byte(inputrc.Esc):
+		core.PopKey(keys)
+		dropEscapeSequence(keys)
+	}
+}
+
+// dropUntilFinal discards CSI parameter bytes up to and including the final
+// byte (0x40-0x7e). (gotinker patch)
+func dropUntilFinal(keys *core.Keys) {
+	for {
+		key, empty := core.PeekKey(keys)
+		if empty {
+			return
+		}
+
+		core.PopKey(keys)
+
+		if key >= 0x40 && key <= 0x7e {
+			return
+		}
+	}
 }

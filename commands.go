@@ -96,10 +96,13 @@ all work; the session is a real Go program compiled with your Go toolchain.
   `+u.code(`for i := range 3 { fmt.Println(i) }`)+`
 
 `+u.style(sBold, "Keys")+`
-  Tab           complete (packages, members, variables, fields, methods)
-  Ctrl-R        search history          ↑/↓    history (multi-line aware)
-  →  / Ctrl-F   accept the grey history suggestion
-  Alt-Enter     insert a newline        Ctrl-X Ctrl-E  edit the input in $EDITOR
+  Enter         run (on the last line), or a new indented line elsewhere
+  Alt-Enter     new line, always          Ctrl-J   run from anywhere
+  ↑ / ↓         move between lines; history from the first / last line
+  Tab           indent at the start of a line, otherwise complete
+  Alt-← / Alt-→ previous / next word      Alt-Backspace / Alt-D  delete word
+  Ctrl-R        search history            →  accept the grey suggestion
+  Ctrl-X Ctrl-E edit the input in $EDITOR
   Ctrl-C        cancel input, or stop a running program
   Ctrl-D        exit
 

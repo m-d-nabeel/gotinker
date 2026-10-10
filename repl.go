@@ -51,8 +51,8 @@ func newREPL(s *Session) *repl {
 	if s.ui.color {
 		r.rl.SyntaxHighlighter = func(line []rune) string { return highlight(string(line)) }
 	}
-	r.rl.AcceptMultiline = func(line []rune) bool { return inputComplete(string(line)) }
 	r.rl.Completer = r.comp.complete
+	r.installEditing()
 	r.rl.Hint.SetProvider(r.comp.hint)
 
 	if dir, err := dataDir(); err == nil {
@@ -115,14 +115,12 @@ func (r *repl) run() {
 
 // inputComplete reports whether src is ready to evaluate, or whether the
 // editor should continue on a new line (open brackets, a trailing operator,
-// an unterminated raw string). Two empty lines force evaluation so a typo
-// can never trap the user in continuation mode.
+// an unterminated raw string). Outside an open { block, two empty lines
+// force evaluation so a stray ( or operator can't trap the user in
+// continuation mode; inside a block, blank lines are just blank lines.
 func inputComplete(src string) bool {
 	t := strings.TrimSpace(src)
 	if t == "" || strings.HasPrefix(t, ":") {
-		return true
-	}
-	if strings.HasSuffix(src, "\n\n") || strings.HasSuffix(src, "\n\n\n") {
 		return true
 	}
 	var s scanner.Scanner
@@ -134,7 +132,7 @@ func inputComplete(src string) bool {
 			unterminated = true
 		}
 	}, scanner.ScanComments)
-	depth := 0
+	var open []token.Token
 	last := token.ILLEGAL
 	for {
 		_, tok, lit := s.Scan()
@@ -143,9 +141,11 @@ func inputComplete(src string) bool {
 		}
 		switch tok {
 		case token.LPAREN, token.LBRACE, token.LBRACK:
-			depth++
+			open = append(open, tok)
 		case token.RPAREN, token.RBRACE, token.RBRACK:
-			depth--
+			if len(open) > 0 {
+				open = open[:len(open)-1]
+			}
 		case token.COMMENT:
 			continue
 		}
@@ -154,7 +154,16 @@ func inputComplete(src string) bool {
 		}
 		last = tok
 	}
-	if unterminated || depth > 0 {
+	inBlock := false
+	for _, tok := range open {
+		if tok == token.LBRACE {
+			inBlock = true
+		}
+	}
+	if !inBlock && !unterminated && blankTail(src) {
+		return true
+	}
+	if unterminated || len(open) > 0 {
 		return false
 	}
 	switch last {
@@ -165,4 +174,12 @@ func inputComplete(src string) bool {
 		return false
 	}
 	return true
+}
+
+// blankTail reports whether the last two lines of src are empty (or hold
+// only the indentation gotinker inserted).
+func blankTail(src string) bool {
+	lines := strings.Split(src, "\n")
+	n := len(lines)
+	return n >= 3 && strings.TrimSpace(lines[n-1]) == "" && strings.TrimSpace(lines[n-2]) == ""
 }
